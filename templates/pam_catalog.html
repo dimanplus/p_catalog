@@ -1,0 +1,1185 @@
+{% extends "main.html" %} {%- block styles %} {{ super() }}
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='Jspreadsheet/v4/jsuites.css') }}"
+  type="text/css"
+/>
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='style01.css') }}"
+  type="text/css"
+/>
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='jsuites/jsuites.css') }}"
+  type="text/css"
+/>
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='jexcel/jexcel.css') }}"
+  type="text/css"
+/>
+
+<script src="{{ url_for('static', filename = 'jexcel/jexcel.js') }}"></script>
+<script src="{{ url_for('static', filename = 'jsuites/jsuites.js') }}"></script>
+<script src="{{ url_for('static', filename = 'js/xlsx.core.min.js') }}"></script>
+<script src="{{ url_for('static', filename = 'js/FileSaver.js') }}"></script>
+<script src="{{ url_for('static', filename = 'js/jhxlsx.js') }}"></script>
+<script src="{{ url_for('static', filename = 'js/jquery.min.js') }}"></script>
+
+<head>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=0.5, shrink-to-fit=yes"
+  />
+
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Loading Screen</title>
+  <style>
+    #loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 185, 86, 0.7); /* Затемнение экрана */
+      display: none; /* По умолчанию скрыто */
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+
+    #loading-message {
+      color: rgb(255, 255, 255);
+      font-size: 35px;
+    }
+
+    a {
+      color: blue;
+      text-decoration: underline;
+    }
+
+    .modal-dialog-scrollable {
+      display: flex;
+      max-height: calc(100% - 2rem);
+    }
+
+    .modal-body {
+      overflow-y: auto;
+    }
+  </style>
+</head>
+{% endblock %} {% block content %}
+<div style="zoom: 0.85">
+  <div id="loading-overlay">
+    <div id="loading-message" align="center" data-text="Пожалуйста подождите, Ваши данные готовятся...">
+        <p>Пожалуйста подождите,</p>
+        <p>Ваши данные готовятся...</p>
+    </div>
+  </div>
+
+	<div align="center" style="left: -280px; top: -400px;" id="load" hidden>
+		<img src="{{ url_for('static', filename='images/mf_gif_1.gif') }}"
+			style="max-width: 350px;">
+	</div>
+
+  <div class="row justify-content-center">
+    <div class="col-5">
+      <span style="color: red">Есть вопросы по ветке? Пиши на </span>
+      <a href="mailto:"
+        >u</a
+      >
+    </div>
+    <div class="col-2">Вы вошли как <b>{{ user_name }}</b></div>
+  </div>
+
+
+  <form id="myForm" method="POST" enctype="multipart/form-data">
+    <div class="form-row d-flex justify-content-center divopacity">
+      <div class="col-7">
+        <div class="col">
+
+          <br />
+
+          <div class="STEP_0 col">
+            <div class="row col">
+              {{ form.Step_0_Text.label(class="font-weight-bold") }}
+              <br />
+            </div>
+
+            <div
+              class="row col btn-group btn-group-toggle mb-3 STEP_0"
+              data-toggle="buttons"
+            >
+              <label class="btn btn-secondary btn-sm mr-2 STEP_0">
+                <input class="STEP_0" type="radio" value="Создать" /> Создать
+              </label>
+              <label class="btn btn-secondary btn-sm mr-2 STEP_0">
+                <input class="STEP_0" type="radio" value="Удалить" /> Удалить
+              </label>
+              <label class="btn btn-secondary btn-sm mr-2 STEP_0">
+                <input class="STEP_0" type="radio" value="Сменить владельца" />
+                Сменить владельца
+              </label>
+              {% if 'ITI-PLATFORMS-ITIDEFENCE' in access_group or 'ITI-PLATFORMS-NETBALANCING' in access_group %}
+              <label class="btn btn-secondary btn-sm mr-2 STEP_0">
+                <input
+                  class="STEP_0"
+                  type="radio"
+                  value="Управление доступом"
+                />
+                Управление доступом
+              </label>
+              {% endif %}
+            </div>
+
+          </div>
+
+          <br />
+
+          <div class="STEP_1 col" hidden>
+            <div class="STEP_1_1" hidden>
+              <div class="">
+                {{ form.Step_1_1_Text.label(class="font-weight-bold") }}
+              </div>
+
+              <div class="">
+                <div class="d-flex align-items-center mb-2">
+                  {{ form.CatalogOwner.label(class="") }}
+                  {{ form.CatalogOwner(class="form-control col-4 ml-3 STEP_1
+                  STEP_1_1_req", disabled=false) }}
+                  <button
+                    type="button"
+                    id="find"
+                    class="btn btn-secondary ml-2"
+                    onclick="findOwner(this)"
+                    data-toggle="modal"
+                    data-target="#UserFind"
+                  >
+                    Найти
+                  </button>
+                </div>
+                <div class="d-flex align-items-center mb-2">
+                  {{ form.CatalogName.label(class="") }} {{
+                  form.CatalogName(class="form-control col-5 ml-3 STEP_1
+                  STEP_1_1_req", placeholder="Введите название каталога",
+                  disabled=false) }}
+                </div>
+                <div
+                  class="d-flex align-items-center"
+                  data-toggle="tooltip"
+                  title="Форма для ввода обоснования, появляется только при выборе «Включено» и дополнительно идет на согласование ИБ."
+                >
+                  {{ form.SecretAccess(class="", onchange="SecretAccessChecked(this)", style="transform: scale(1.5);" ) }}
+                  {{ form.SecretAccess.label(class="ml-2") }}
+                </div>
+                <div class="d-flex align-items-center mb-2 Reason" hidden>
+                  {{ form.Reason.label(class="Reason", hidden="true") }} {{
+                  form.Reason(class="form-control col ml-3 Reason",
+                  disabled=false, hidden="true") }}
+                </div>
+                <br />
+                <label class="font-weight-bold">
+                  Дополнительные доступы для нового каталога (опционально).
+                </label>
+                <div id="Step_1_1_addMore">
+                  <div class="Step_1_1_addMore">
+                    <div class="row d-flex align-items-center">
+                      <div class="col-2">
+                        {{ form.Step_1_1_type.label(class="OriginalForm") }}
+                      </div>
+                      <div class="col-4" style="margin-left: 2rem">
+                        Имя группы / Пользователь
+                      </div>
+                      <div class="col-5">
+                        {{ form.Step_1_1_access_type.label(class="OriginalForm")
+                        }}
+                      </div>
+
+                      <div class="w-100"></div>
+
+                      <div class="col-2">
+                        {{ form.Step_1_1_type(class="form-control OriginalForm
+                        UserType", disabled=false) }}
+                      </div>
+
+                      <div class="col-4 row" style="margin-left: 2rem">
+                        {{ form.NewCatalogOwner(class="form-control col
+                        OriginalForm", disabled=false) }}
+                        <button
+                          type="button"
+                          id="find"
+                          class="row btn btn-secondary OriginalForm"
+                          onclick="findUser(this)"
+                          data-toggle="modal"
+                          data-target="#UserFind"
+                          style="margin-left: 1rem"
+                        >
+                          Найти
+                        </button>
+                      </div>
+
+                      <div class="col-5 row" style="margin-left: 1rem">
+                        {{ form.Step_1_1_access_type(class="form-control col-5
+                        OriginalForm AccessType", disabled=false) }}
+                        <button
+                          type="button"
+                          class="btn btn-secondary align-baseline clone UserFind"
+                          onclick="RowToTable('Step_1_1_addMore','Step_1_1', this)"
+                          data-toggle="tooltip"
+                          title="Добавить в таблицу"
+                          style="margin-left: 1rem"
+                          disabled
+                        >
+                          Добавить строку
+                        </button>
+                      </div>
+
+                    </div>
+                    <br />
+                  </div>
+                </div>
+                <table
+                  id="STEP_1_1"
+                  class="table table-bordered Step_1_1 STEP_1_1 text-center align-middle"
+                >
+                  <thead>
+                    <tr>
+                      <th scope="col">Тип доступа</th>
+                      <th scope="col">Имя группы / Пользователя</th>
+                      <th scope="col">Уровень доступа</th>
+                      <th scope="col"></th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="STEP_1_2" hidden>
+              <div class="">
+                {{ form.Step_1_2_Text.label(class="font-weight-bold") }}
+              </div>
+
+              <div class="col">
+                <div class="row d-flex align-items-center mb-2">
+                  {{ form.CatalogOwner.label(class="") }} {{
+                  form.CatalogOwner(class="form-control col-4 ml-3 STEP_1
+                  STEP_1_2_req", disabled=false) }}
+                  <button
+                    type="button"
+                    id="find"
+                    class="btn btn-secondary ml-2"
+                    onclick="findOwner(this)"
+                    data-toggle="modal"
+                    data-target="#UserFind"
+                  >
+                    Найти
+                  </button>
+                </div>
+                <div class="row d-flex align-items-center mb-2">
+                  {{ form.CatalogName.label(class="") }} {{
+                  form.CatalogName(class="form-control col-5 ml-3 STEP_1
+                  STEP_1_2_req", placeholder="Введите название каталога",
+                  disabled=false) }}
+                </div>
+
+                <br />
+
+                <div id="Step_1_2_addMore">
+                  <div class="col Step_1_2_addMore">
+                    <div class="row d-flex align-items-center">
+                      {{ form.Step_1_2_type.label(class="OriginalForm") }} {{
+                      form.Step_1_2_type(class="form-control col-3 ml-3 mb-2
+                      OriginalForm UserType", disabled=false) }} {{
+                      form.NewCatalogOwner(class="form-control col-3 ml-3 mb-2
+                      OriginalForm", disabled=false) }}
+                      <button
+                        type="button"
+                        id="find"
+                        class="row btn btn-secondary ml-2 mb-2 OriginalForm"
+                        onclick="findUser(this)"
+                        data-toggle="modal"
+                        data-target="#UserFind"
+                        style="margin-left: 1rem"
+                      >
+                        Найти
+                      </button>
+                      <button
+                        type="button"
+                        class="row btn btn-secondary mb-2 clone UserFind"
+                        onclick="RowToTable('Step_1_2_addMore','Step_1_2', this)"
+                        data-toggle="tooltip"
+                        title="Добавить в таблицу"
+                        style="margin-left: 2rem"
+                        disabled
+                      >
+                        Добавить строку
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <br />
+                <table
+                  id="STEP_1_2"
+                  class="table table-bordered Step_1_2 STEP_1_2 text-center align-middle"
+                >
+                  <thead>
+                    <tr>
+                      <th scope="col">Тип доступа</th>
+                      <th scope="col">Имя группы / Пользователя</th>
+                      <th scope="col"></th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="STEP_2 col" hidden>
+            <div class="">
+              {{ form.Step_2_Text.label(class="font-weight-bold") }}
+            </div>
+            <div class="col">
+              <div class="row d-flex align-items-center mb-2">
+                {{ form.combined_field.label }}
+                <input
+                  type="text"
+                  id="combined_field"
+                  name="combined_field"
+                  class="form-control col-4 ml-3 STEP_2_req"
+                  list="options_2"
+                  onchange="setOwner(this)"
+                  placeholder="Начните вводить имя каталога или выберете из списка"
+                />
+                <datalist id="options_2">
+                  {% for i in catalogs %}
+                  <option value="{{ i }}">{% endfor %}</option>
+                </datalist>
+              </div>
+              <div class="row d-flex align-items-center mb-2">
+                {{ form.CatalogOwner.label(class="") }} {{
+                form.CatalogOwner(class="form-control col-3 ml-3 STEP_2_req",
+                disabled=true, value="{{i[1]}}") }}
+              </div>
+              <div class="row d-flex align-items-center mb-2">
+                <input class="STEP_2_req" 
+                  id="Accept" 
+                  name="Accept" 
+                  type="checkbox" 
+                  value="y"
+                  style="transform: scale(1.5);">
+                <label class="ml-3" for="Accept" style="color: red; font-weight: bold;">
+                  Подтверждаю, что будут удалены все вложенные секреты и подкаталоги внутри выбранного каталога
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="STEP_3 col" hidden>
+            <div class="">
+              {{ form.Step_3_Text.label(class="font-weight-bold") }}
+            </div>
+
+            <div class="col">
+              <div class="row d-flex align-items-center mb-2">
+                {{ form.combined_field.label }}
+                <input
+                  type="text"
+                  id="combined_field"
+                  name="combined_field"
+                  class="form-control col-4 ml-3 STEP_3_req"
+                  list="options_3"
+                  onchange="setOwner(this)"
+                  placeholder="Начните вводить имя каталога или выберете из списка"
+                />
+                <datalist id="options_3">
+                  {% for i in main_catalogs %}
+                  <option value="{{ i }}">{% endfor %}</option>
+                </datalist>
+              </div>
+              <div class="row d-flex align-items-center mb-2">
+                {{ form.CatalogOwner.label(class="") }} {{
+                form.CatalogOwner(class="form-control col-3 ml-3 STEP_3_req",
+                disabled=true) }}
+              </div>
+              <div class="row d-flex align-items-center mb-2">
+                {{ form.NewCatalogOwner.label(class="") }} {{
+                form.NewCatalogOwner(class="form-control col-3 ml-3 STEP_3_req",
+                disabled=false) }}
+                <button
+                  type="button"
+                  id="find"
+                  class="btn btn-secondary ml-2 OwnerFind"
+                  onclick="findOwner(this)"
+                  data-toggle="modal"
+                  data-target="#UserFind"
+                >
+                  Найти
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="STEP_4 col justify-content-center" hidden>
+            <div class="">
+              {{ form.Step_4_Text.label(class="font-weight-bold") }}
+            </div>
+
+            <div class="col STEP_4 STEP_4_req mt-3 mb-2 float-right">
+              <button
+                type="button"
+                class="btn btn-secondary btn-success btn-sm align-baseline clone"
+                id=""
+                onclick=""
+                data-toggle="modal"
+                data-target="#CatalogSelect"
+                title="Добавить в таблицу текущих доступов"
+              >
+                Добавить строку
+              </button>
+              <input
+                type="button"
+                class="btn btn-sm"
+                value="Очистить"
+                onclick="ClearTable()"
+              />
+            </div>
+
+            <div
+              class="STEP_4 STEP_4_req mt-3 mb-2 d-flex justify-content-center"
+              id="spreadsheet_action"
+            ></div>
+            <table
+              id="spreadsheet_new"
+              class="table table-bordered table-sm STEP_4 STEP_4_req text-left align-left"
+            >
+              <thead>
+                <tr>
+                  <th scope="col">Действие</th>
+                  <th scope="col">Каталог</th>
+                  <th scope="col">Владелец</th>
+                  <th scope="col">Тип доступа</th>
+                  <th scope="col">Имя группы/пользователя</th>
+                  <th scope="col">Уровень доступа</th>
+                  <th scope="col"></th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+            <hr />
+
+            <label class="mt-4 mb-2 d-flex justify-content-center">
+              Текущие доступы для {{ user_name }}
+            </label>
+
+            <div
+              class="STEP_4 STEP_4_req mt-3 mb-2 d-flex justify-content-center"
+              id="spreadsheet_static"
+            ></div>
+            <hr />
+          </div>
+        </div>
+        {{ form.send(class="btn btn-success col-3 ml-4 mb-3 send",
+        hidden='true') }}
+      </div>
+
+    </div>
+  </form>
+
+  <!-- DelAccess модальное окно -->
+  <div
+    class="modal fade"
+    id="DelAccess"
+    data-backdrop="static"
+    data-keyboard="true"
+    tabindex="-1"
+    aria-labelledby="DelAccessLabel"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-dialog-scrollable modal-lg">
+      <div class="modal-content">
+        <div class="modal-body">
+          <label class="mb-3">
+            Выберите из списка объекты для которых необходимо отозвать доступ
+          </label>
+          <table id="STEP_4_2" class="STEP_4_2 table table-top table-sm mb-3">
+            <thead>
+              <tr>
+                <th scope="col">Группа в РАМ</th>
+                <th scope="col">УЗ пользователя</th>
+                <th scope="col">Название в AD/FSM</th>
+                <th scope="col">Уровень доступа</th>
+                <th scope="col">Выбрать</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr row-id="1">
+                <th scope="row" value="iti-platforms-net">iti-platforms-net</th>
+                <td value="dmcherka">dmcherka</td>
+                <td value="dmcherka">dmcherka</td>
+                <td value="user">user</td>
+                <td>
+                  <input type="checkbox" class="table-top select-checkbox" />
+                </td>
+              </tr>
+              <tr row-id="2">
+                <th scope="row">NET-balancing</th>
+                <td>dmcherka</td>
+                <td>dmcherka</td>
+                <td>user</td>
+                <td>
+                  <input type="checkbox" class="table-top select-checkbox" />
+                </td>
+              </tr>
+              <tr row-id="3">
+                <th scope="row">iti-platforms</th>
+                <td>dmcherka</td>
+                <td>dmcherka</td>
+                <td>user</td>
+                <td>
+                  <input type="checkbox" class="table-top select-checkbox" />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <label class="mb-3">
+            Выбранные объекты для отзыва доступа у каталога 
+          </label>
+          <table id="STEP_4_2" class="STEP_4_2 table table-bot table-sm mb-3">
+            <thead>
+              <tr>
+                <th scope="col">Группа в РАМ</th>
+                <th scope="col">УЗ пользователя</th>
+                <th scope="col">Название в AD/FSM</th>
+                <th scope="col">Уровень доступа</th>
+                <th scope="col">Выбрать</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <br />
+          <div class="col d-flex justify-content-center">
+            <button
+              id="deleteButton"
+              type="button"
+              class="btn btn-danger mr-2 deleteButton"
+              onclick=""
+            >
+              Удалить
+            </button>
+            <button
+              id="addButton"
+              type="button"
+              class="btn btn-success mr-2 addButton"
+              onclick=""
+            >
+              Добавить
+            </button>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            id="cancelButton"
+            type="button"
+            class="btn btn-secondary cancelButton"
+            data-dismiss="modal"
+          >
+            Отмена
+          </button>
+          <button
+            id="continueButton"
+            type="button"
+            class="btn btn-primary continueButton"
+            data-dismiss="modal"
+          >
+            Продолжить
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- UserFind модальное окно -->
+  <div
+    class="modal fade"
+    id="UserFind"
+    tabindex="-1"
+    role="dialog"
+    aria-labelledby="UserFind"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Поиск</h5>
+          <button
+            type="button"
+            class="close"
+            aria-label="Close"
+            data-toggle="modal"
+            data-dismiss="modal"
+          >
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <ul id="elementList" class="list-group UserFind">
+            <!-- Элементы списка будут добавлены здесь с помощью JavaScript -->
+          </ul>
+        </div>
+
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-primary"
+            data-toggle="modal"
+            data-target=""
+            data-dismiss="modal"
+          >
+            Закрыть
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- UserSelect модальное окно -->
+  <div
+    class="modal fade"
+    id="UserSelect"
+    tabindex="-1"
+    role="dialog"
+    aria-labelledby="UserSelect"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Поиск пользователя</h5>
+          <button
+            type="button"
+            class="close"
+            aria-label="Close"
+            data-toggle="modal"
+            data-dismiss="modal"
+          >
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <ul id="elementList" class="list-group UserSelect">
+            <!-- Элементы списка будут добавлены здесь с помощью JavaScript -->
+          </ul>
+        </div>
+
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-primary"
+            data-toggle="modal"
+            data-target="#CatalogSelect"
+            data-dismiss="modal"
+          >
+            Закрыть
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CatalogSelect модальное окно -->
+  <div
+    class="modal fade"
+    id="CatalogSelect"
+    tabindex="-1"
+    role="dialog"
+    aria-labelledby="CatalogSelectLabel"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="CatalogSelectLabel">Выбор каталога</h5>
+          <button
+            type="button"
+            class="close"
+            data-dismiss="modal"
+            aria-label="Close"
+          >
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="col">
+            <ul id="elementList" class="list-group">
+              <!-- Элементы списка будут добавлены здесь с помощью JavaScript -->
+
+              <div class="">
+                <div class="row mt-2 d-flex justify-content-center align-items-center">
+                  {{ form.combined_field.label }}
+                  <input
+                    type="text"
+                    id="combined_field"
+                    name="root_cat"
+                    class="form-control ml-2 col-6 STEP_4"
+                    list="options_4_base"
+                    onchange="setOwner(this, 'STEP_4')"
+                    placeholder="Родительский каталог"
+                    style="background-color: '' ;"
+                  />
+
+                  <datalist id="options_4_base">
+                    <option value disabled>{% for i in root_cat %}</option>
+
+                    <option value="{{ i }}">{% endfor %}</option>
+                  </datalist>
+                </div>
+
+                <div class="row mt-2 d-flex justify-content-center align-items-center">
+                  {{ form.CatalogOwner.label(class="mt-2") }} {{
+                  form.CatalogOwner(class="form-control ml-2 col-6", disabled=true) }}
+                </div>
+              </div>
+
+              <div
+                class="row d-flex justify-content-center align-items-center mt-2"
+                data-toggle="tooltip"
+                title="Требуется указать вложенный каталог внутри указанного базового каталога"
+              >
+                {{ form.IncludeCatalog(class="Include",
+                onchange="IncludeShow(this,'IncludeShow','true')", hidden=true)
+                }} {{ form.IncludeCatalog.label(class="ml-2 Include",
+                hidden=true) }}
+              </div>
+
+              <div class="row mt-2 IncludeShow d-flex justify-content-center align-items-center" hidden>
+                <label class="IncludeShow" hidden>
+                  Выберите вложенный каталог
+                </label>
+                <input
+                  type="text"
+                  id="combined_field"
+                  name="child_cat"
+                  class="form-control ml-3 col-6 IncludeShow "
+                  list="options_4_in"
+                  onchange=""
+                  placeholder="Вложенный каталог"
+                  hidden="true"
+                />
+
+                <datalist id="options_4_in">
+                  {% for i in child_cat %}
+                  <option value="{{ i }}">{% endfor %}</option>
+                </datalist>
+              </div>
+
+              <div
+                class="row mt-4 d-flex justify-content-around align-items-center"
+              >
+                <div class="col-md-3">
+                  {{ form.Step_4_1_type.label(class="OriginalForm") }}
+                </div>
+                <div class="col-md-4">Имя группы / Пользователь</div>
+                <div class="col-md-3 ml-3">
+                  {{ form.Step_4_1_access_type.label(class="OriginalForm") }}
+                </div>
+
+                <div class="w-100"></div>
+
+                <div class="col-md-3">
+                  {{ form.Step_4_1_type(class="form-control OriginalForm
+                  UserType", disabled=false) }}
+                </div>
+
+                <div class="col-md-5 row" style="margin-left: 2rem">
+                  {{ form.NewCatalogOwner(class="col form-control OriginalForm",
+                  disabled=false) }}
+                  <button
+                    type="button"
+                    id="find_4"
+                    class="row btn btn-secondary btn-sm OriginalForm"
+                    onclick="findUser(this)"
+                    data-toggle="modal"
+                    data-target="#UserSelect"
+                    data-dismiss="modal"
+                    style="margin-left: 1rem"
+                  >
+                    Найти
+                  </button>
+                </div>
+                <div class="col-md"></div>
+
+                <div class="col-md-3 ml-3">
+                  {{ form.Step_4_1_access_type(class="form-control OriginalForm
+                  AccessType", disabled=false) }}
+                </div>
+              </div>
+
+              <div class="row d-flex justify-content-center align-items-center">
+                <button
+                  type="button"
+                  class="btn btn-secondary btn-sm align-baseline clone UserSelect mb-2 mt-3"
+                  id="add_row"
+                  onclick=""
+                  data-toggle="tooltip"
+                  title="Добавить в таблицу"
+                  disabled
+                >
+                  Добавить в таблицу
+                </button>
+              </div>
+            </ul>
+          </div>
+        </div>
+        <div class="modal-footer">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- fsmAnswerModal модальное окно -->
+  <div
+    class="modal fade"
+    id="fsmAnswerModal"
+    tabindex="-1"
+    role="dialog"
+    aria-labelledby="fsmAnswerModalLabel"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="fsmAnswerModalLabel">Создание заявки</h5>
+          <button
+            id="close"
+            type="button"
+            class="close"
+            data-dismiss="modal"
+            aria-label="Close"
+            onclick="window.location.reload()"
+          >
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="col">
+            <div id="fsmAnswer_elementList" class="list-group fsmAnswerModal align-items-center">
+              <!-- Элементы списка будут добавлены здесь с помощью JavaScript -->
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <div class="col d-flex justify-content-center align-items-center">
+            <button
+              type="button"
+              class="btn btn-primary align-baseline yasno mb-2 mt-3"
+              id="yasno"
+              onclick=""
+              data-toggle="tooltip"
+            >
+              Отлично
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- WORK !!! MODAL from MODAL  -->
+  <!-- Первое модальное окно -->
+  <div
+    class="modal fade"
+    id="exampleModalToggle"
+    tabindex="-1"
+    role="dialog"
+    aria-labelledby="exampleModalToggleLabel"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Первое модальное окно</h5>
+          <button
+            type="button"
+            class="close"
+            data-dismiss="modal"
+            aria-label="Close"
+          >
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <button
+            type="button"
+            class="btn btn-primary"
+            data-toggle="modal"
+            data-target="#exampleModalToggle2"
+            data-dismiss="modal"
+          >
+            Вызвать второе модальное
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Второе модальное окно -->
+  <div
+    class="modal fade"
+    id="exampleModalToggle2"
+    tabindex="-1"
+    role="dialog"
+    aria-labelledby="exampleModalToggle2"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Второе модальное окно</h5>
+          <button
+            type="button"
+            class="close"
+            data-dismiss="modal"
+            aria-label="Close"
+          >
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <button
+            type="button"
+            class="btn btn-primary"
+            data-toggle="modal"
+            data-target="#exampleModalToggle"
+            data-dismiss="modal"
+          >
+            Вернуться к первому модальному
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %} {% block scripts %} {{ super() }}
+
+
+<script>
+  var table1 = jexcel(document.getElementById('spreadsheet_static'), {
+   data:{{ list_data|tojson }},
+   defaultColWidth: '100',
+   columns: [
+  	 {
+  		 title: 'Каталог',
+  		 width: '500',
+  		 align: 'left', {#readOnly: true,#}
+  	 },
+  	 {title: 'Владелец', width: '150', {#type: 'html',#}},
+  	 {title: 'Тип доступа', width: '150', {#type: 'html',#}},
+  	 {
+  		 title: 'Имя группы/пользователя',
+  		 width: '250', {#readOnly: true,#}
+  	 },
+  	 {title: 'Уровень доступа', width: '200', {#type: 'html',#}},
+  	 {title: 'Удалить?', width: 100, type: 'html'}
+   ],
+
+   tableWidth: 'auto',
+   tableOverflow: false,
+   filters: true,
+   editable: false,
+   allowInsertRow: false,
+   autoCasting: false,
+   columnSorting: true,
+   {#search: true,#}
+   {#pagination:10,#}
+   columnDrag: false,
+   rowDrag: false,
+  });
+
+  for (var i = 0; i < table1.rows.length; i++) {
+   var row = table1.rows[i];
+
+   var deleteButton = document.createElement('button');
+   deleteButton.setAttribute("type", "button");
+   deleteButton.setAttribute("class", 'btn btn-danger btn-sm badge badge-pill');
+   deleteButton.setAttribute("onclick", "deleteRow(this)");
+   deleteButton.setAttribute("data-toggle", "tooltip");
+   deleteButton.setAttribute("title", "Удалить строку");
+   deleteButton.textContent = "X";
+   deleteButton.innerText = 'X';
+
+   // Disable button if value in the first cell is '{{user_name}}'
+   if (row.cells[2].innerText !== '{{user_name}}') {
+  	 deleteButton.setAttribute("class", 'btn btn-secondary btn-sm badge badge-pill');
+  	 deleteButton.disabled = true;
+  	 row.style.color = '#DB1500'
+   } else {
+  	 deleteButton.disabled = false;
+  	 row.style.color = '#008533'
+   }
+   row.cells[6].appendChild(deleteButton); 
+  }
+
+  function del_row(button) {
+   // Получаем родительский элемент строки, в которой находится кнопка
+   var row = button.closest('tr');
+   row_ref = button.closest('tr').querySelectorAll('td');
+   stat_table = document.querySelectorAll('#spreadsheet_static tbody tr')
+   for (let i = 0; i < stat_table.length; i++){
+    item = stat_table[i].querySelectorAll('td')
+    if (item[1].textContent == row_ref[1].textContent && item[3].textContent == row_ref[3].textContent && item[4].textContent == row_ref[4].textContent && item[5].textContent == row_ref[5].textContent){
+
+      old_button = stat_table[i].querySelector('button')
+      old_button.setAttribute("class", 'btn btn-danger btn-sm badge badge-pill');
+      old_button.disabled = false;
+    }    
+   }
+   // Проверяем, найден ли родительский элемент строки
+   if (row) {
+  	 // Удаляем строку
+  	 row.parentNode.removeChild(row);
+   }
+  }
+
+  function ClearTable() {
+   var table_new = document.getElementById('spreadsheet_new');
+   var rows = Array.from(table_new.querySelectorAll('tbody tr'));
+
+   rows.forEach(row => {
+  	 row.remove();
+   });
+
+   var button = document.querySelectorAll('#spreadsheet_static td button');
+   button.forEach(function (but) {
+  	 row = but.parentElement.parentElement
+  	 but.removeAttribute('class');
+
+  	 if (row.cells[2].innerText.includes('{{user_name}}')) {
+  		 but.setAttribute("class", 'btn btn-danger btn-sm badge badge-pill');
+  		 but.removeAttribute('disabled');
+  		 row.style.color = '#008533'
+  	 } else {
+  		 but.setAttribute("class", 'btn btn-secondary btn-sm badge badge-pill');
+  		 but.disabled = true;
+  		 row.style.color = '#DB1500'
+  	 }
+   });
+  }
+
+
+  function deleteRow(button) {
+   var row = button.parentElement.parentElement;
+   cells = row.querySelectorAll('td')
+   data = [];
+   var static_table = row.parentElement.querySelectorAll('tr')
+
+   for (let i = 0; i < static_table.length; i++) {
+     item = static_table[i].querySelectorAll('td')
+     if (item[1].textContent.startsWith(cells[1].textContent) && item[3].textContent === cells[3].textContent && item[4].textContent === cells[4].textContent) {
+       similar_button = static_table[i].querySelector('button')
+       similar_button.setAttribute("class", 'btn btn-secondary btn-sm badge badge-pill');
+       similar_button.disabled = true;
+       data.push(['Удалить', item[1].textContent, item[2].textContent, item[3].textContent, item[4].textContent, item[5].textContent])
+     }
+   }
+
+   button.setAttribute("class", 'btn btn-secondary btn-sm badge badge-pill');
+   button.disabled = true;
+
+   table_new = document.querySelector('#spreadsheet_new tbody');
+   // Создаем массив, чтобы отслеживать строки, которые должны быть удалены из data
+   let dataToRemove = [];
+
+  // Проходим по всем строкам таблицы
+   for (let row of table_new.rows) {
+       let rowValues = Array.from(row.cells).map(cell => cell.textContent.trim());
+      
+       // Проходим по всем строкам data
+       for (let i = 0; i < data.length; i++) {
+           if (data[i].length === 0) continue; // Пропускаем пустые строки
+          
+           // Проверяем, все ли элементы строки data[i] присутствуют в rowValues
+           let allItemsPresent = data[i].every(item => rowValues.includes(item));
+
+           if (allItemsPresent) {
+              // Если все элементы присутствуют, помечаем эту строку как удаляемую
+              dataToRemove.push(i);
+              break; // Можно выйти из внутреннего цикла, так как строка найдена
+           }
+       }
+   }
+
+  // Удаляем отмеченные строки из data (в обратном порядке, чтобы не нарушить индексы)
+  for (let i = dataToRemove.length - 1; i >= 0; i--) {
+      data.splice(dataToRemove[i], 1);
+  }
+
+   for (let i = 0; i < data.length; i++) {
+    row_new = table_new.insertRow(-1);
+    // Заполняем ячейки в этой строке
+      for (let j = 0; j < data[i].length; j++) {
+          let cell = row_new.insertCell(j);
+          cell.textContent = data[i][j];
+      }
+      var del_row = document.createElement('button');
+      del_row.setAttribute("type", "button");
+      del_row.setAttribute("class", 'btn btn-danger btn-sm badge badge-pill');
+      del_row.setAttribute("onclick", "del_row(this)");
+      del_row.setAttribute("data-toggle", "tooltip");
+      del_row.setAttribute("title", "Удалить строку");
+      del_row.textContent = "X";
+      del_row.innerText = 'X';
+
+      cellWithButton = row_new.insertCell(data.length[-1]);
+      cellWithButton.appendChild(del_row);
+    }
+
+  }
+</script>
+
+<script>
+  window.addEventListener('beforeunload', function () {
+    let load = document.getElementById('load');
+    load.hidden = false;
+    let overlay = document.createElement('div');
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100%';
+    overlay.style.height = '100%';
+    overlay.style.background = 'rgba(255,255,255, 0.5)';
+    document.body.appendChild(overlay);
+  });
+</script>
+
+<script src="{{ url_for('pam_catalog.static', filename='js/pam_catalog.js') }}"></script>
+
+<script>
+  var you_owner_dict = {{ you_owner_dict | safe }};
+  var all_owner_dict = {{ all_owner_dict | safe }};
+  var list_data = {{ list_data | safe }};
+  var child_cat = {{ child_cat | safe }};
+  var access_group = {{ access_group | safe }};
+  console.log('access_group из html', access_group)
+</script>
+
+<script>
+  // Закрытие модального окна только при нажатии на кнопку внутри него
+  $('#yasno').on('click', function() {
+      $('#fsmAnswerModal').modal('hide');
+      window.location.reload();
+  });
+</script>
+
+<script>
+</script>
+
+{% endblock scripts %}
